@@ -1,8 +1,7 @@
 # running2win
 script to quickly log in and/or log workouts on running2win (online running log)
 
-'''
-README 
+
 
 first step is to enter your username and password in the lines around ~82
 
@@ -22,4 +21,4 @@ Date - Enter through the date prompt to select the current day. Otherwise enter 
 AM Run - Default is PM run. Enter y or yes to log it as an AM run
 Workout Type - Default is Normal Run.  Enter the corresponding number if you want to select a different one
 Shoe Type - This really only works if you keep track of shoes.  It stores the list on your computer using Shelve. It will not prompt you if you have no shoes stored
-'''
+
