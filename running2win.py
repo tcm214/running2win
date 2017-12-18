@@ -2,9 +2,9 @@
 ##
 
 '''
-README 
+README
 
-first step is to enter your username and password in the lines around ~82
+First fill in the filepath to the chromedriver around line 122
 
 You will start at the main menu:
 Running2win Python Application
@@ -21,13 +21,17 @@ Quick Log Notes:
 Date - Enter through the date prompt to select the current day. Otherwise enter +/- the # of days (Ex. -6 would be six days ago)
 AM Run - Default is PM run. Enter y or yes to log it as an AM run
 Workout Type - Default is Normal Run.  Enter the corresponding number if you want to select a different one
-Shoe Type - This really only works if you keep track of shoes.  It stores the list on your computer using Shelve. It will not prompt you if you have no shoes stored
+Shoe Type - This really only works if you keep track of shoes.  It also stores the list on your computer using Shelve.  You can enter through and it will not log a shoe
+
+
 '''
+
 
 import sys
 import shelve
 import time
 import os
+import configparser
 from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
@@ -73,14 +77,36 @@ def shoe_picker():
 
 		return shoe_list[shoe_choice].split('(')[0]			# return the name of the shoe up to the 1st parentheses
 
-#fire up r2w and pull up workout entry page if home = False
-def r2w_login(home = False, headless = True):		#headless controls whether or not we use phantomjs for quick log
 
-	# define constants.  I wouldve put this part in another function, but it's a lot of variable passing and I'm too dumb to figure out a clean solution
+#this will create an INI config file that stores your logins if none could be found.  the user should only have to do this once
+def create_config(reset = False):
+	config = configparser.ConfigParser()
+	if not reset:
+		print('Welcome to the r2w python script. Please enter your login credentials below.')
+	username = input('Username: ')
+	password = input('Password: ')
+	config['r2w'] = {'username' : username, 'pw' : password}
+	with open('r2wconfig.ini', 'w') as configfile:
+		config.write(configfile)
+	print('\n\nVerifying Credentials...')
+	driver = r2w_login(home = True, test = True)
+	return
+
+
+
+
+#fire up r2w and pull up workout entry page if home = False
+def r2w_login(home = False, headless = True, test = False):		#headless controls whether or not we use phantomjs for quick log
+
+	import configparser
+	config = configparser.ConfigParser()
+	config.read('r2wconfig.ini')
+	# define constants.  I wouldve put this part in another function, but it's a lot of variable passing
 	login_info = {}
 	login_info['url'] = 'http://www.running2win.com/index.asp'
-	login_info['username'] = ''#enter username     <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<~~~~~~~~~~~~~~~~~~~~~~~~~
-	login_info['fullp'] = ''#enter pw     	     <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	login_info['username'] = config['r2w']['username']
+
+	login_info['pw'] = config['r2w']['pw']
 
 	username_element_name = "txtUsername"
 	pw_element_name = "txtPassword"
@@ -93,14 +119,29 @@ def r2w_login(home = False, headless = True):		#headless controls whether or not
 		driver = webdriver.PhantomJS() # or add to your PATH
 		driver.set_window_size(1024, 768) # optional
 	else:
-		driver = webdriver.Chrome("C:\\Users\\tcm21\\Downloads\\chromedriver_win32\\chromedriver.exe")
+		driver = webdriver.Chrome("") #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Insert the filepath
 	driver.get(login_info['url'])
+
 	driver.find_element_by_link_text(login_info['login_button_text']).click()
 	time.sleep(1) # let the page load
 	driver.find_element_by_name(username_element_name).send_keys(login_info['username'])
-	driver.find_element_by_name(pw_element_name).send_keys(login_info['fullp'])
-	driver.find_element_by_name(login_button_element_name).click()
-	print('Login Successful...')
+	driver.find_element_by_name(pw_element_name).send_keys(login_info['pw'])
+	driver.find_element_by_name(login_button_element_name).click()	
+	if test:
+		try:
+			time.sleep(1)	#remove
+			_ = driver.find_element_by_link_text(login_info['username'])
+			cls()
+			print('Username/Password Accepted')
+			time.sleep(2)
+			return
+		except:
+			cls()
+			print('Your logins may be incorrect.  Please re-enter them.')
+			create_config(reset = True)
+			print('\nRestarting Program...')
+				
+
 	if not home:
 		open_wo(driver)
 		return driver
@@ -224,10 +265,13 @@ def log_wo(driver, wo_info):
 	save_button.click()
 	
 	print('Workout Saved...')
+
+	return
 	
 
 def quick_log_prompt():
 	cls()  		#clear the screen so I can look at a clean 'Quick Log' prompt
+	wo_info = {}	#create dictionary to hold wo info
 	print('----- Running2Win Quick Log -----\n')
 	wo_info['run_date'] = date_prompt()
 	wo_info['am_run_yn'] = am_run_prompt()
@@ -238,41 +282,55 @@ def quick_log_prompt():
 
 	return wo_info
 
-#main prompt
-while True:
-	cls()
-	choice = main_menu()
 
-	if choice == 1: # quick log
 
-		wo_info = {}
-		wo_info = quick_log_prompt()   #go into quick log where I can enter the info from cmd prompt
-		#stored all the wo info into a dictionary now i can pass that into the log workout function
-		driver = r2w_login() #log into r2w and pull up workout page
-		log_wo(driver, wo_info)
-		if input("log something else? (y/n): ").lower() in ['n', 'no', '', 'quit', 'q']:
+
+def main():
+
+	if not os.path.isfile('r2wconfig.ini'):
+		create_config()
+
+
+	#main prompt
+	while True:
+		cls()
+		choice = main_menu()
+
+		if choice == 1: # quick log
+
+			wo_info = quick_log_prompt()   #go into quick log where I can enter the info from cmd prompt
+			#stored all the wo info into a dictionary now i can pass that into the log workout function
+			driver = r2w_login() #log into r2w and pull up workout page
+			log_wo(driver, wo_info)
+			if input("log something else? (y/n): ").lower() in ['n', 'no', '', 'quit', 'q']:
+				break
+
+		elif choice == 2: # log workout in detail.  this will pull up a log workout page for me to enter the data
+			driver = r2w_login(headless = False)
+			_ = input('press any key to exit...')
 			break
 
-	elif choice == 2: # log workout in detail.  this will pull up a log workout page for me to enter the data
-		driver = r2w_login(headless = False)
-		_ = input('press any key to exit...')
-		break
+		elif choice == 3: # open homepage and stop there
+			driver = r2w_login(home = True, headless = False)
+			_ = input('press any key to exit...') 
+			break
 
-	elif choice == 3: # open homepage and stop there
-		driver = r2w_login(home = True, headless = False)
-		_ = input('press any key to exit...') 
-		break
+		elif choice == 'quit':
+			break
 
-	elif choice == 'quit':
-		break
+	try:
+		if driver:
+			print('quitting driver')
+			driver.quit()
+	except:
+		pass
+	print('\nExiting r2w application...\n')
 
-try:
-	if driver:
-		print('quitting driver')
-		driver.quit()
-except:
-	pass
-print('\nExiting r2w application...\n')
+
+
+
+
+main()
 
 	
 
