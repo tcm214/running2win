@@ -3,9 +3,8 @@ script to quickly log in and/or log workouts on running2win (online running log)
 
 
 
-first step is to enter your username and password in the lines around ~82 of running2win.py
+first step is to enter your username and password if this is your first time using the program
 
-optional - next step is to do the same on the update_shoes.py script then run that script to store your shoes to your machine using Shelve
 
 You will start at the main menu:
 Running2win Python Application
@@ -14,7 +13,6 @@ Running2win Python Application
 2. Log Workout 		<--- Enter 2 to manually log a workout.  The program will pull up a New Workout page
 3. Open Homepage 	<--- Enter 3 to go to the homepage.  The program will just log you in
 
-What would you like to do?:
 
 
 Quick Log Notes:
